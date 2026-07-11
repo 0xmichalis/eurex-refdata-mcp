@@ -14,7 +14,16 @@ Prices in the chain (`previous_day_settlement_price`, `options_delta`) are previ
 
 ## Install
 
-Build from source: `cargo build --release` (a static musl build uses
+Prebuilt **static** Linux binaries are attached to each [GitHub Release](../../releases) —
+built for `x86_64-unknown-linux-musl`, so they link no libc and run on any x86_64 Linux
+regardless of the host's glibc version.
+
+```sh
+tar xzf eurex-refdata-mcp-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz
+install eurex-refdata-mcp-vX.Y.Z-x86_64-unknown-linux-musl/eurex-refdata-mcp ~/.local/bin/
+```
+
+Or build from source: `cargo build --release` (a static musl build uses
 [`cross`](https://github.com/cross-rs/cross): `cross build --release --target x86_64-unknown-linux-musl`).
 
 ## Setup
