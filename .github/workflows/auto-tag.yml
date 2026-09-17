@@ -1,7 +1,13 @@
 name: Auto Tag on Version Bump
 
 # When the version in Cargo.toml changes on main, create and push a matching
-# `v<version>` tag. Pushing that tag triggers release.yml to build and publish.
+# `v<version>` tag, then run release.yml against it to build and publish.
+#
+# The release is dispatched explicitly rather than left to release.yml's
+# `on: push: tags` trigger. A tag pushed with the default GITHUB_TOKEN does not
+# start a new workflow run — GitHub suppresses it to avoid recursion — so the
+# push trigger never fires for tags created here. `workflow_dispatch` is one of
+# the two documented exceptions to that rule, so dispatching works.
 on:
   push:
     branches:
@@ -9,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # required to dispatch release.yml
 
 jobs:
   auto-tag:
@@ -119,6 +126,8 @@ jobs:
 
       - name: Create and push tags
         if: steps.changed.outputs.has_changes == 'true' && steps.new-tags.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -129,6 +138,28 @@ jobs:
             echo "Creating and pushing tag: $TAG"
             git tag "$TAG" "$CURR_SHA"
             git push origin "$TAG"
+
+            # GitHub does not trigger workflows from events created with
+            # GITHUB_TOKEN, so release.yml's `on: push: tags` never fires for the
+            # tag above. Dispatch it explicitly.
+            #
+            # The tag is already pushed, so a failed dispatch cannot be fixed by
+            # re-running this workflow: the next run sees the tag and skips it.
+            # Retry, and if it still fails say exactly how to recover by hand.
+            echo "Dispatching release.yml for $TAG"
+            for attempt in 1 2 3; do
+              if gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --field tag="$TAG"; then
+                break
+              fi
+              if [[ $attempt == 3 ]]; then
+                echo "::error::Tag $TAG was pushed but dispatching release.yml failed." \
+                     "Re-running this workflow will NOT retry (the tag now exists)." \
+                     "Recover with: gh workflow run release.yml --repo $GITHUB_REPOSITORY --field tag=$TAG"
+                exit 1
+              fi
+              echo "Dispatch attempt $attempt failed; retrying in $((attempt * 5))s"
+              sleep $((attempt * 5))
+            done
           done
 
       - name: Summary
