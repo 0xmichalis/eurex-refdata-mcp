@@ -1,6 +1,6 @@
 [package]
 name = "eurex-refdata-mcp"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 description = "Read-only Eurex Reference Data MCP server (options chains, products, expirations)"
@@ -12,7 +12,8 @@ categories = ["api-bindings"]
 [dependencies]
 dotenvy = "0.15.7"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "charset"] }
-rmcp = { version = "1.7.0", features = ["transport-io"] }
+rmcp = { version = "3.0.1", features = ["schemars", "transport-io"] }
+schemars = "1.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.150"
 thiserror = "2"

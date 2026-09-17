@@ -6,8 +6,8 @@
 //! reference data only — there is nothing here that can trade.
 
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::{CallToolResult, Content, Implementation, ServerCapabilities, ServerInfo};
-use rmcp::{schemars, tool, tool_handler, tool_router, ErrorData, ServerHandler};
+use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
+use rmcp::{tool, tool_handler, tool_router, ErrorData, ServerHandler};
 
 use crate::eurex::transport::ReqwestTransport;
 use crate::eurex::{ChainFilter, EurexClient, EurexError};
@@ -121,7 +121,7 @@ impl EurexServer {
     ) -> Result<CallToolResult, ErrorData> {
         let filter = match args.into_filter() {
             Ok(filter) => filter,
-            Err(message) => return Ok(CallToolResult::error(vec![Content::text(message)])),
+            Err(message) => return Ok(CallToolResult::error(vec![ContentBlock::text(message)])),
         };
         Ok(to_result(
             self.client.options_chain(&filter).await,
@@ -132,8 +132,8 @@ impl EurexServer {
 
 #[tool_handler]
 impl ServerHandler for EurexServer {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::new(
                 env!("CARGO_PKG_NAME"),
                 env!("CARGO_PKG_VERSION"),
@@ -152,9 +152,9 @@ impl ServerHandler for EurexServer {
 fn to_result<T: serde::Serialize>(result: Result<Vec<T>, EurexError>, key: &str) -> CallToolResult {
     match result {
         Ok(rows) => CallToolResult::structured(serde_json::json!({ key: rows })),
-        Err(err) => {
-            CallToolResult::error(vec![Content::text(format!("Eurex query failed: {err}"))])
-        }
+        Err(err) => CallToolResult::error(vec![ContentBlock::text(format!(
+            "Eurex query failed: {err}"
+        ))]),
     }
 }
 
