@@ -1,6 +1,6 @@
 [package]
 name = "eurex-refdata-mcp"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "Read-only Eurex Reference Data MCP server (options chains, products, expirations)"
