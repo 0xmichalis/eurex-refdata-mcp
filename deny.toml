@@ -1,6 +1,6 @@
 # cargo-deny configuration.
 #
-# Advisories are owned by the `cargo audit` CI job, so they are not checked here.
+# Advisories are owned by the Security Audit workflow, so they are not checked here.
 # cargo-deny covers what audit cannot: license policy, banned/duplicate crates,
 # and allowed sources.
 
