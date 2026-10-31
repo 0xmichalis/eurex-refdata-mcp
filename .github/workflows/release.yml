@@ -57,7 +57,7 @@ jobs:
     #
     # persist-credentials: false keeps the token out of .git/config — cargo runs
     # dependency build scripts, which would otherwise be able to read it.
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         ref: ${{ env.RELEASE_TAG }}
         persist-credentials: false
@@ -85,7 +85,7 @@ jobs:
         target: ${{ matrix.target }}
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.target }}
         path: |
@@ -101,13 +101,13 @@ jobs:
       contents: write # create the release and upload assets
     steps:
     - name: Download all build artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: artifacts
         merge-multiple: true
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: ${{ env.RELEASE_TAG }}
         draft: false
