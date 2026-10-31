@@ -77,16 +77,12 @@ jobs:
     - name: Build static binary
       run: cross build --release --locked --target ${{ matrix.target }}
 
-    - name: Package
-      env:
-        TARGET: ${{ matrix.target }}
-      run: |
-        staging="eurex-refdata-mcp-${RELEASE_TAG}-${TARGET}"
-        mkdir -p "$staging"
-        cp "target/${TARGET}/release/eurex-refdata-mcp" "$staging/"
-        cp README.md LICENSE "$staging/"
-        tar czf "${staging}.tar.gz" "$staging"
-        sha256sum "${staging}.tar.gz" > "${staging}.tar.gz.sha256"
+    - name: Package binary and checksum
+      uses: 0xmichalis/repo-tooling/actions/package-rust-binary@ed1b0c7db2764f49a7144c7eff80351a90b65ded # v1.0.0
+      with:
+        binary: eurex-refdata-mcp
+        tag: ${{ env.RELEASE_TAG }}
+        target: ${{ matrix.target }}
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
