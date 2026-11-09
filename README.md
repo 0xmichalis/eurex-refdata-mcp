@@ -51,7 +51,7 @@ Point your `~/.hermes/config.yaml` at the binary. If you use a personal API key,
 ```yaml
 mcp_servers:
   eurex:
-    command: /home/you/.local/bin/eurex-refdata-mcp
+    command: /home/you/.local/bin/eurex-refdata-mcp  # macOS: /Users/you/.local/bin/eurex-refdata-mcp
     args: []
     env:
       EUREX_API_KEY: "${EUREX_API_KEY}"  # optional; omit to use the shared key
