@@ -14,14 +14,27 @@ Prices in the chain (`previous_day_settlement_price`, `options_delta`) are previ
 
 ## Install
 
-Prebuilt **static** Linux binaries are attached to each [GitHub Release](../../releases) —
-built for `x86_64-unknown-linux-musl`, so they link no libc and run on any x86_64 Linux
-regardless of the host's glibc version.
+Prebuilt binaries are attached to each [GitHub Release](../../releases):
+
+| Platform | Asset |
+| --- | --- |
+| Linux x86_64 | `eurex-refdata-mcp-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz` |
+| macOS Apple Silicon | `eurex-refdata-mcp-vX.Y.Z-aarch64-apple-darwin.tar.gz` |
+| macOS Intel | `eurex-refdata-mcp-vX.Y.Z-x86_64-apple-darwin.tar.gz` |
+
+The Linux build is **static** (musl), so it links no libc and runs on any x86_64 Linux regardless
+of the host's glibc version.
 
 ```sh
-tar xzf eurex-refdata-mcp-vX.Y.Z-x86_64-unknown-linux-musl.tar.gz
-install eurex-refdata-mcp-vX.Y.Z-x86_64-unknown-linux-musl/eurex-refdata-mcp ~/.local/bin/
+target=x86_64-unknown-linux-musl   # or aarch64-apple-darwin, x86_64-apple-darwin
+tar xzf "eurex-refdata-mcp-vX.Y.Z-${target}.tar.gz"
+mkdir -p ~/.local/bin
+install "eurex-refdata-mcp-vX.Y.Z-${target}/eurex-refdata-mcp" ~/.local/bin/
 ```
+
+Each asset ships with a `.sha256` alongside it. On macOS the binary is unsigned, so Gatekeeper
+will quarantine a downloaded copy — clear it with
+`xattr -d com.apple.quarantine ~/.local/bin/eurex-refdata-mcp`.
 
 Or build from source: `cargo build --release` (a static musl build uses
 [`cross`](https://github.com/cross-rs/cross): `cross build --release --target x86_64-unknown-linux-musl`).
@@ -38,7 +51,7 @@ Point your `~/.hermes/config.yaml` at the binary. If you use a personal API key,
 ```yaml
 mcp_servers:
   eurex:
-    command: /home/you/.local/bin/eurex-refdata-mcp
+    command: /home/you/.local/bin/eurex-refdata-mcp  # macOS: /Users/you/.local/bin/eurex-refdata-mcp
     args: []
     env:
       EUREX_API_KEY: "${EUREX_API_KEY}"  # optional; omit to use the shared key
