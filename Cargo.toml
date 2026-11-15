@@ -1,7 +1,7 @@
 [package]
 name = "eurex-refdata-mcp"
 version = "0.1.4"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Read-only Eurex Reference Data MCP server (options chains, products, expirations)"
 authors = ["Michalis Kargakis <kargakis@protonmail.com>"]

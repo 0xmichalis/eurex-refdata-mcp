@@ -1,7 +1,7 @@
 //! End-to-end flow tests for the Eurex client using an injected fake transport — no network.
 
 use eurex_refdata_mcp::eurex::transport::{PostGraphql, TransportError};
-use eurex_refdata_mcp::eurex::{ChainFilter, EurexClient, EurexError, API_URL, PUBLIC_API_KEY};
+use eurex_refdata_mcp::eurex::{API_URL, ChainFilter, EurexClient, EurexError, PUBLIC_API_KEY};
 use std::collections::VecDeque;
 use std::sync::Mutex;
 

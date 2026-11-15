@@ -3,8 +3,8 @@
 //! Every Eurex query returns `{"data": {"<Root>": {"date": ..., "data": [...]}}}` on
 //! success and an `errors` array on failure (possibly alongside partial data).
 
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 /// Errors surfaced by the Eurex client.

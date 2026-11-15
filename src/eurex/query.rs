@@ -3,7 +3,7 @@
 //! Filter values are always passed as GraphQL variables, never interpolated into the
 //! query document, so user-supplied strings cannot change the query shape.
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 /// Narrowing criteria for an options chain. `product` is the Eurex product code
 /// (e.g. "ALV"); everything else is optional.
