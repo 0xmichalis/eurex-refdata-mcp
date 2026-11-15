@@ -22,7 +22,7 @@ const CONTRACTS_QUERY: &str = "query Chain($filter: ContractsFilter!) { \
      Contracts(filter: $filter) { date data { \
      Product Contract ContractID InstrumentID ISIN CallPut Strike \
      ExpirationDate LastTradingDate ContractSize ExerciseStyle SettlementType \
-     PreviousDaySettlementPrice OptionsDelta } } }";
+     SettlementPrice OptionsDelta } } }";
 
 const PRODUCT_INFOS_QUERY: &str = "query Products($filter: ProductInfosFilter) { \
      ProductInfos(filter: $filter) { date data { \

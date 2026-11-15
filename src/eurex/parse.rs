@@ -80,10 +80,10 @@ pub struct OptionContract {
     )]
     pub settlement_type: Option<String>,
     #[serde(
-        rename(deserialize = "PreviousDaySettlementPrice"),
+        rename(deserialize = "SettlementPrice"),
         skip_serializing_if = "Option::is_none"
     )]
-    pub previous_day_settlement_price: Option<f64>,
+    pub settlement_price: Option<f64>,
     #[serde(
         rename(deserialize = "OptionsDelta"),
         skip_serializing_if = "Option::is_none"
@@ -202,13 +202,14 @@ mod tests {
         let body = r#"{"data":{"Contracts":{"date":"2026-07-13","data":[
             {"Product":"ALV","Contract":"ALV SI 20261218 PS AM C 430.00 0","CallPut":"C",
              "Strike":430,"ExpirationDate":"2026-12-18","ISIN":"DE000F3KP6F6",
-             "PreviousDaySettlementPrice":19.57,"OptionsDelta":0.5}]}}}"#;
+             "SettlementPrice":19.57,"OptionsDelta":0.5}]}}}"#;
 
         let rows: Vec<OptionContract> = parse_rows(body, "Contracts").unwrap();
 
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].strike, Some(430.0));
         assert_eq!(rows[0].call_put.as_deref(), Some("C"));
+        assert_eq!(rows[0].settlement_price, Some(19.57));
         assert_eq!(rows[0].contract_id, None);
     }
 
