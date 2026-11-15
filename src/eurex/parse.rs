@@ -195,6 +195,7 @@ pub fn parse_rows<T: DeserializeOwned>(body: &str, root: &str) -> Result<Vec<T>,
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::assert_matches;
 
     #[test]
     fn parses_contract_rows() {
@@ -233,7 +234,7 @@ mod tests {
     #[test]
     fn invalid_json_is_a_parse_error() {
         let err = parse_rows::<OptionContract>("not json", "Contracts").unwrap_err();
-        assert!(matches!(err, EurexError::Parse(_)));
+        assert_matches!(err, EurexError::Parse(_));
     }
 
     #[test]
