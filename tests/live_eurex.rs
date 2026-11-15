@@ -11,10 +11,10 @@ use eurex_refdata_mcp::eurex::{ChainFilter, EurexClient};
 fn live_client() -> EurexClient<ReqwestTransport> {
     let _ = dotenvy::dotenv();
     let mut client = EurexClient::new(ReqwestTransport::new().expect("build reqwest transport"));
-    if let Ok(api_key) = std::env::var("EUREX_API_KEY") {
-        if !api_key.is_empty() {
-            client = client.with_api_key(api_key);
-        }
+    if let Ok(api_key) = std::env::var("EUREX_API_KEY")
+        && !api_key.is_empty()
+    {
+        client = client.with_api_key(api_key);
     }
     client
 }
@@ -54,9 +54,11 @@ async fn live_allianz_flow_products_expirations_chain() {
     println!("chain for {expiry}: {} calls", chain.len());
     assert!(!chain.is_empty(), "expected calls for expiry {expiry}");
     assert!(chain.iter().all(|c| c.call_put.as_deref() == Some("C")));
-    assert!(chain
-        .iter()
-        .all(|c| c.expiration_date.as_deref() == Some(expiry.as_str())));
+    assert!(
+        chain
+            .iter()
+            .all(|c| c.expiration_date.as_deref() == Some(expiry.as_str()))
+    );
     for c in chain.iter().take(5) {
         println!(
             "  {} strike={:?} settle={:?} delta={:?}",

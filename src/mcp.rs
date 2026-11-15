@@ -7,7 +7,7 @@
 
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
-use rmcp::{tool, tool_handler, tool_router, ErrorData, ServerHandler};
+use rmcp::{ErrorData, ServerHandler, tool, tool_handler, tool_router};
 
 use crate::eurex::transport::ReqwestTransport;
 use crate::eurex::{ChainFilter, EurexClient, EurexError};

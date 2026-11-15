@@ -1,7 +1,8 @@
 //! End-to-end flow tests for the Eurex client using an injected fake transport — no network.
 
 use eurex_refdata_mcp::eurex::transport::{PostGraphql, TransportError};
-use eurex_refdata_mcp::eurex::{ChainFilter, EurexClient, EurexError, API_URL, PUBLIC_API_KEY};
+use eurex_refdata_mcp::eurex::{API_URL, ChainFilter, EurexClient, EurexError, PUBLIC_API_KEY};
+use std::assert_matches;
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
@@ -153,5 +154,5 @@ async fn transport_failure_surfaces_as_transport_error() {
 
     let err = client.expirations("ALV").await.unwrap_err();
 
-    assert!(matches!(err, EurexError::Transport(_)));
+    assert_matches!(err, EurexError::Transport(_));
 }
