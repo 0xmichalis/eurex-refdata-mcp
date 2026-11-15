@@ -10,7 +10,9 @@ Read-only MCP server for the [Eurex Reference Data API](https://www.eurex.com/ex
 | `eurex_expirations` | List a product's expiration dates |
 | `eurex_options_chain` | Fetch an options chain, filterable by expiry, call/put, and strike range |
 
-Prices in the chain (`previous_day_settlement_price`, `options_delta`) are previous-day settlement data, not live quotes.
+In the chain, `settlement_price` is Eurex's most recent daily settlement price (normally the previous
+trading day's; omitted for contracts that have not settled yet) and `options_delta` is the previous
+day's delta. Both are end-of-day reference data, not live quotes.
 
 ## Install
 

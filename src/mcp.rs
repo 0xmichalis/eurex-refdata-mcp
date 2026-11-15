@@ -110,8 +110,8 @@ impl EurexServer {
     #[tool(
         name = "eurex_options_chain",
         description = "Fetch the options chain of a Eurex product (e.g. ALV, OESX): strikes, \
-                       expiries, ISINs, previous-day settlement prices and deltas, sorted by \
-                       expiry then strike. Chains can exceed 1000 contracts — narrow with \
+                       expiries, ISINs, latest daily settlement prices and previous-day deltas, \
+                       sorted by expiry then strike. Chains can exceed 1000 contracts — narrow with \
                        expiration_date, call_put, and min/max_strike. Read-only reference data.",
         annotations(read_only_hint = true)
     )]
@@ -142,7 +142,8 @@ impl ServerHandler for EurexServer {
                 "Read-only Eurex reference data (Deutsche Börse GraphQL API). Typical flow: \
                  `eurex_search_products` to find a product code from an underlying, \
                  `eurex_expirations` to pick an expiry, then `eurex_options_chain` filtered \
-                 by that expiry. Settlement prices are previous-day, not live quotes.",
+                 by that expiry. Settlement prices and deltas are end-of-day values from the \
+                 most recent settlement, not live quotes.",
             )
     }
 }

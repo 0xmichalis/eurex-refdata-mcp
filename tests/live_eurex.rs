@@ -59,12 +59,16 @@ async fn live_allianz_flow_products_expirations_chain() {
             .iter()
             .all(|c| c.expiration_date.as_deref() == Some(expiry.as_str()))
     );
+    assert!(
+        chain.iter().any(|c| c.settlement_price.is_some()),
+        "expected settlement prices for expiry {expiry}"
+    );
     for c in chain.iter().take(5) {
         println!(
             "  {} strike={:?} settle={:?} delta={:?}",
             c.contract.as_deref().unwrap_or("-"),
             c.strike,
-            c.previous_day_settlement_price,
+            c.settlement_price,
             c.options_delta,
         );
     }
