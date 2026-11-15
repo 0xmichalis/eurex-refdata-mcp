@@ -142,8 +142,8 @@ impl ServerHandler for EurexServer {
                 "Read-only Eurex reference data (Deutsche Börse GraphQL API). Typical flow: \
                  `eurex_search_products` to find a product code from an underlying, \
                  `eurex_expirations` to pick an expiry, then `eurex_options_chain` filtered \
-                 by that expiry. Settlement prices and deltas are end-of-day values from the \
-                 most recent settlement, not live quotes.",
+                 by that expiry. Settlement prices are the most recent daily settlement and \
+                 deltas are previous-day values; neither is a live quote.",
             )
     }
 }
