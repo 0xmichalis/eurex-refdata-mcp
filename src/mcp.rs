@@ -8,18 +8,39 @@
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
 use rmcp::{ErrorData, ServerHandler, tool, tool_handler, tool_router};
+use tokio::sync::Semaphore;
 
 use crate::eurex::transport::ReqwestTransport;
 use crate::eurex::{ChainFilter, EurexClient, EurexError};
 
+// Keep simultaneous response reads and result construction bounded in one stdio session.
+const ACTIVE_QUERIES_MAX: usize = 4;
+
 /// The MCP server: an Eurex client over the production transport.
 pub struct EurexServer {
     client: EurexClient<ReqwestTransport>,
+    active_queries: Semaphore,
 }
 
 impl EurexServer {
     pub fn new(client: EurexClient<ReqwestTransport>) -> Self {
-        Self { client }
+        Self {
+            client,
+            active_queries: Semaphore::new(ACTIVE_QUERIES_MAX),
+        }
+    }
+
+    async fn run_query<T: serde::Serialize>(
+        &self,
+        query: impl Future<Output = Result<Vec<T>, EurexError>>,
+        key: &str,
+    ) -> CallToolResult {
+        let Ok(_permit) = self.active_queries.try_acquire() else {
+            return CallToolResult::error(vec![ContentBlock::text(
+                "Eurex server is busy. Retry when another query finishes.",
+            )]);
+        };
+        to_result(query.await, key)
     }
 }
 
@@ -52,14 +73,19 @@ pub struct OptionsChainArgs {
 }
 
 impl OptionsChainArgs {
-    /// Validate and normalize into a client-side filter. Rejects a call/put flag that
-    /// is not C or P — the API would silently return an empty chain otherwise.
+    /// Validate and normalize the tool input before querying Eurex.
     fn into_filter(self) -> Result<ChainFilter, String> {
-        let call_put = match self.call_put.as_deref().map(str::to_uppercase) {
+        let call_put = match self.call_put.as_deref() {
             None => None,
-            Some(cp) if cp == "C" || cp == "P" => Some(cp),
-            Some(other) => return Err(format!("call_put must be \"C\" or \"P\", got {other:?}")),
+            Some("C" | "c") => Some("C".into()),
+            Some("P" | "p") => Some("P".into()),
+            Some(_) => return Err("call_put must be \"C\" or \"P\"".into()),
         };
+        if let (Some(min), Some(max)) = (self.min_strike, self.max_strike)
+            && min > max
+        {
+            return Err("min_strike must be less than or equal to max_strike".into());
+        }
         Ok(ChainFilter {
             product: self.product,
             expiration_date: self.expiration_date,
@@ -84,10 +110,9 @@ impl EurexServer {
         &self,
         Parameters(args): Parameters<SearchProductsArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Ok(to_result(
-            self.client.search_products(&args.query).await,
-            "products",
-        ))
+        Ok(self
+            .run_query(self.client.search_products(&args.query), "products")
+            .await)
     }
 
     #[tool(
@@ -101,10 +126,9 @@ impl EurexServer {
         &self,
         Parameters(args): Parameters<ExpirationsArgs>,
     ) -> Result<CallToolResult, ErrorData> {
-        Ok(to_result(
-            self.client.expirations(&args.product).await,
-            "expirations",
-        ))
+        Ok(self
+            .run_query(self.client.expirations(&args.product), "expirations")
+            .await)
     }
 
     #[tool(
@@ -123,10 +147,9 @@ impl EurexServer {
             Ok(filter) => filter,
             Err(message) => return Ok(CallToolResult::error(vec![ContentBlock::text(message)])),
         };
-        Ok(to_result(
-            self.client.options_chain(&filter).await,
-            "contracts",
-        ))
+        Ok(self
+            .run_query(self.client.options_chain(&filter), "contracts")
+            .await)
     }
 }
 
@@ -163,6 +186,8 @@ fn to_result<T: serde::Serialize>(result: Result<Vec<T>, EurexError>, key: &str)
 mod tests {
     use super::*;
     use crate::eurex::OptionContract;
+    use wiremock::matchers::method;
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn contract(strike: f64) -> OptionContract {
         serde_json::from_value(serde_json::json!({ "Strike": strike, "CallPut": "C" })).unwrap()
@@ -221,5 +246,76 @@ mod tests {
 
         let err = args.into_filter().unwrap_err();
         assert!(err.contains("call_put"), "err: {err}");
+    }
+
+    #[tokio::test]
+    async fn chain_tool_rejects_inverted_strikes_and_accepts_equal_strikes() {
+        let mock = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(r#"{"data":{"Contracts":{"data":[{"Strike":400}]}}}"#),
+            )
+            .expect(1)
+            .mount(&mock)
+            .await;
+        let client = EurexClient::new(ReqwestTransport::new().unwrap())
+            .with_url(mock.uri())
+            .with_api_key("synthetic-key");
+        let server = EurexServer::new(client);
+        let args = |max_strike| {
+            Parameters(OptionsChainArgs {
+                product: "TEST".into(),
+                expiration_date: None,
+                call_put: None,
+                min_strike: Some(400.0),
+                max_strike: Some(max_strike),
+            })
+        };
+
+        let result = server.options_chain(args(399.0)).await.unwrap();
+        assert_eq!(result.is_error, Some(true));
+        assert!(mock.received_requests().await.unwrap().is_empty());
+
+        let result = server.options_chain(args(400.0)).await.unwrap();
+        assert_eq!(result.is_error, Some(false));
+        assert_eq!(
+            result.structured_content.unwrap(),
+            serde_json::json!({"contracts":[{"strike":400.0}]}),
+        );
+    }
+
+    #[tokio::test]
+    async fn tool_calls_fail_fast_when_busy_and_resume_when_capacity_frees() {
+        let mock = MockServer::start().await;
+        Mock::given(method("POST"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(r#"{"data":{"Expirations":{"data":[]}}}"#),
+            )
+            .expect(1)
+            .mount(&mock)
+            .await;
+        let client = EurexClient::new(ReqwestTransport::new().unwrap())
+            .with_url(mock.uri())
+            .with_api_key("synthetic-key");
+        let server = EurexServer::new(client);
+        let args = || {
+            Parameters(ExpirationsArgs {
+                product: "TEST".into(),
+            })
+        };
+        let permits = server
+            .active_queries
+            .try_acquire_many(ACTIVE_QUERIES_MAX as u32)
+            .unwrap();
+
+        let result = server.expirations(args()).await.unwrap();
+        assert_eq!(result.is_error, Some(true));
+        assert!(mock.received_requests().await.unwrap().is_empty());
+
+        drop(permits);
+        let result = server.expirations(args()).await.unwrap();
+        assert_eq!(result.is_error, Some(false));
     }
 }

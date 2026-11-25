@@ -14,6 +14,10 @@ In the chain, `settlement_price` is Eurex's most recent daily settlement price (
 trading day's; omitted for contracts that have not settled yet) and `options_delta` is the previous
 day's delta. Both are end-of-day reference data, not live quotes.
 
+Each Eurex request has a 30-second deadline and a 16 MiB response limit. The server accepts up to
+four concurrent tool calls. For an oversized options chain, narrow the query by expiration, side,
+or strike.
+
 ## Install
 
 Prebuilt binaries are attached to each [GitHub Release](../../releases):

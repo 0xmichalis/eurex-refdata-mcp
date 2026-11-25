@@ -76,14 +76,16 @@ impl<T: PostGraphql> EurexClient<T> {
     /// deduplicated by product code, and sorted.
     pub async fn search_products(&self, search: &str) -> Result<Vec<ProductInfo>, EurexError> {
         let upper = search.to_uppercase();
-        let by_symbol = self
-            .post(&query::products_by_underlying_body(&upper))
-            .await?;
+        let mut rows: Vec<ProductInfo> = {
+            let by_symbol = self
+                .post(&query::products_by_underlying_body(&upper))
+                .await?;
+            parse_rows(&by_symbol, "ProductInfos")?
+        };
         let by_name = self
             .post(&query::products_by_underlying_name_body(&upper))
             .await?;
 
-        let mut rows: Vec<ProductInfo> = parse_rows(&by_symbol, "ProductInfos")?;
         rows.extend(parse_rows::<ProductInfo>(&by_name, "ProductInfos")?);
         rows.sort_by(|a, b| a.product.cmp(&b.product));
         rows.dedup_by(|a, b| a.product == b.product);

@@ -121,6 +121,19 @@ async fn search_products_merges_symbol_and_name_matches_deduplicated() {
 }
 
 #[tokio::test]
+async fn search_products_stops_after_a_failed_symbol_lookup() {
+    let fake = FakeTransport::new([
+        r#"{"data":{"ProductInfos":{"data":[]}},"errors":[{"message":"provider failure"}]}"#,
+    ]);
+    let client = EurexClient::new(&fake);
+
+    let err = client.search_products("test").await.unwrap_err();
+
+    assert_eq!(err, EurexError::Api("provider failure".into()));
+    assert_eq!(fake.calls().len(), 1);
+}
+
+#[tokio::test]
 async fn expirations_are_deduplicated_and_sorted() {
     let body = r#"{"data":{"Expirations":{"data":[
         {"Product":"ALV","ExpirationDate":"2027-12-17","LastTradingDate":"2027-12-17"},

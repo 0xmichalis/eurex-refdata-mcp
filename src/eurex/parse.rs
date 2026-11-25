@@ -171,7 +171,7 @@ pub struct Expiration {
 /// Extract the row list under `data.<root>.data` from a GraphQL response body.
 /// GraphQL errors are reported as [`EurexError::Api`] with all messages joined.
 pub fn parse_rows<T: DeserializeOwned>(body: &str, root: &str) -> Result<Vec<T>, EurexError> {
-    let envelope: Value =
+    let mut envelope: Value =
         serde_json::from_str(body).map_err(|e| EurexError::Parse(format!("invalid JSON: {e}")))?;
 
     if let Some(errors) = envelope.get("errors").and_then(Value::as_array) {
@@ -183,10 +183,10 @@ pub fn parse_rows<T: DeserializeOwned>(body: &str, root: &str) -> Result<Vec<T>,
     }
 
     let rows = envelope
-        .get("data")
-        .and_then(|d| d.get(root))
-        .and_then(|r| r.get("data"))
-        .cloned()
+        .get_mut("data")
+        .and_then(|data| data.get_mut(root))
+        .and_then(|result| result.get_mut("data"))
+        .map(Value::take)
         .ok_or_else(|| EurexError::Parse(format!("missing data.{root}.data")))?;
 
     serde_json::from_value(rows).map_err(|e| EurexError::Parse(format!("decoding rows: {e}")))

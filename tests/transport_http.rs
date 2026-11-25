@@ -27,15 +27,51 @@ async fn post_sends_json_body_and_api_key_header_and_returns_body() {
 }
 
 #[tokio::test]
-async fn non_success_status_is_a_transport_error() {
+async fn rate_limit_is_reported_once_without_sensitive_request_details() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
+        .and(header("X-DBP-APIKEY", "header-sentinel"))
         .respond_with(ResponseTemplate::new(429))
+        .expect(1)
         .mount(&server)
         .await;
 
     let transport = ReqwestTransport::new().unwrap();
-    let err = transport.post(&server.uri(), "k", "{}").await.unwrap_err();
+    let url = format!("{}/?key=url-sentinel", server.uri());
+    let err = transport
+        .post(&url, "header-sentinel", "{}")
+        .await
+        .unwrap_err();
 
-    assert!(err.to_string().contains("429"), "error was: {err}");
+    assert_eq!(err.to_string(), "HTTP status error: 429");
+}
+
+#[tokio::test]
+async fn request_errors_omit_the_url() {
+    let transport = ReqwestTransport::new().unwrap();
+    let err = transport
+        .post("file:///url-sentinel", "header-sentinel", "{}")
+        .await
+        .unwrap_err();
+    assert!(err.to_string().starts_with("sending request:"));
+    assert!(!format!("{err:?} {err}").contains("sentinel"));
+}
+
+#[tokio::test]
+async fn a_redirect_does_not_forward_the_api_key() {
+    let server = MockServer::start().await;
+    let destination = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(307).insert_header("Location", destination.uri()))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let transport = ReqwestTransport::new().unwrap();
+    let err = transport
+        .post(&server.uri(), "header-sentinel", "{}")
+        .await
+        .unwrap_err();
+    assert_eq!(err.to_string(), "HTTP status error: 307");
+    assert!(destination.received_requests().await.unwrap().is_empty());
 }
